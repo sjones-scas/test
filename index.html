@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Math Game</title> <!-- Adjust this text to change the name of the game shown -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+  <h1>Welcome to the Maths Game</h1>  <!-- Adjust this text to change the name of the game shown -->
+  <p>Enter your details to start:</p>
+  <input type="text" id="studentName" placeholder="Your Name">
+  <input type="text" id="studentClass" placeholder="Your Class">
+  <button onclick="startGame()">Start Game</button>
+
+  <div id="game" style="display: none;">
+    <h2>Stage <span id="stageNumber"></span>, Level <span id="levelNumber"></span></h2>
+    <p id="question"></p>
+    <input type="text" id="answer" placeholder="Enter your answer">
+    <button onclick="submitAnswer()">Submit</button>
+    <p id="feedback"></p>
+  </div>
+
+  <div id="endMessage" style="display: none;">
+    <h2>Congratulations, <span id="finalName"></span>!</h2>
+    <p>You achieved <span id="finalXP"></span> XP in this game!</p>
+    <button onclick="generateExcel()">Download Results</button>
+  </div>
+
+  <script>
+    const totalStages = 5; // Change this number to set the total number of stages in the game.
+    const questions = { // Change the quotation mark sections below to adjust the questions and answers. The answers are case-sensitive and space-sensitive.
+      1: [
+  [ // Stage 1, Level 1
+    { question: "Write the number 2,345,678 in words", answer: "two million three hundred forty-five thousand six hundred seventy-eight" },
+    { question: "Which number is larger: 1,234,567 or 1,234,568?", answer: "1,234,568" },
+    { question: "Arrange these numbers in ascending order: 3,000,000, 2,500,000, 2,000,000", answer: "2,000,000, 2,500,000, 3,000,000" },
+    { question: "Round 4,567,890 to the nearest million", answer: "5,000,000" },
+    { question: "How many zeros are in one million?", answer: "6" }
+  ],
+  [ // Stage 1, Level 2
+    { question: "Name the place value of the digit 7 in 7,654,321", answer: "millions" },
+    { question: "Arrange these numbers in descending order: 5,678,901, 5,678,900, 5,678,902", answer: "5,678,902, 5,678,901, 5,678,900" },
+    { question: "Round 8,765,432 to the nearest hundred thousand", answer: "8,800,000" },
+    { question: "Write the number 9,876,543 in expanded form using place value", answer: "9,000,000 + 800,000 + 70,000 + 6,000 + 500 + 40 + 3" },
+    { question: "Which number comes next after 4,999,999 in the sequence of whole numbers?", answer: "5,000,000" }
+  ],
+  [ // Stage 1, Level 3
+    { question: "If you have 6,543,210 items and you add 1,234,567 more, what is the total number of items?", answer: "7,777,777" },
+    { question: "Write the number that is exactly halfway between 3,000,000 and 4,000,000", answer: "3,500,000" },
+    { question: "How many different ways can you represent the number 5,000,000 using place value?", answer: "5,000,000 = 5 * 1,000,000 or 50 * 100,000 or 500 * 10,000 or 5,000 * 1,000 or 50,000 * 100 or 500,000 * 10 or 5,000,000 * 1" },
+    { question: "If you start at 1,000,000 and keep adding 1,000,000 until you reach 10,000,000, how many steps will you take?", answer: "9" },
+    { question: "What is the smallest number greater than 7,000,000 that can be formed using the digits 7, 0, 0, 0, 0, 0, 1?", answer: "7,000,001" }
+  ]
+],
+2: [
+  [ // Stage 2, Level 1
+    { question: "Place the number 5 on a number line", answer: "5" },
+    { question: "Which integer comes before -3?", answer: "-4" },
+    { question: "Show the position of 0 on a number line", answer: "0" },
+    { question: "How many units apart are -2 and 2 on a number line?", answer: "4" },
+    { question: "Place the number -1 on a number line", answer: "-1" }
+  ],
+  [ // Stage 2, Level 2
+    { question: "Show the position of -5 and 5 on a number line", answer: "-5, 5" },
+    { question: "What is the integer halfway between -4 and 4?", answer: "0" },
+    { question: "Place the integers -3, -1, 0, 1, 3 on a number line", answer: "-3, -1, 0, 1, 3" },
+    { question: "How many integers are there between -10 and 10, including both endpoints?", answer: "21" },
+    { question: "Show the position of -7, -2, 0, 2, 7 on a number line", answer: "-7, -2, 0, 2, 7" }
+  ],
+  [ // Stage 2, Level 3
+    { question: "What is the integer that is 5 units to the left of -10 on a number line?", answer: "-15" },
+    { question: "Place the integers -15, -10, -5, 0, 5, 10, 15 on a number line and identify the midpoint", answer: "0" },
+    { question: "If you start at -20 and move 30 units to the right, where do you end up on the number line?", answer: "10" },
+    { question: "How many integers are there between -100 and 100, excluding both endpoints?", answer: "198" },
+    { question: "What is the integer that is equidistant from -25 and 25 on a number line?", answer: "0" }
+  ]
+],
+3: [
+  [ // Stage 3, Level 1
+    { question: "Write 1,000,000 as a number of thousands", answer: "1,000" },
+    { question: "How many millions are in 1 billion?", answer: "1,000" },
+    { question: "Partition 500,000 into hundreds", answer: "5,000" },
+    { question: "Rename 10,000,000 as a number of millions", answer: "10" },
+    { question: "How many thousands are in 2,000,000?", answer: "2,000" }
+  ],
+  [ // Stage 3, Level 2
+    { question: "Partition 750,000,000 into millions and thousands", answer: "750,000,000 = 750,000 * 1,000" },
+    { question: "Regroup 3,456,789 into hundreds, tens, and ones", answer: "34,567 hundreds, 8 tens, 9 ones" },
+    { question: "Rename 987,654,321 as a sum of billions, millions, thousands, and ones", answer: "900,000,000 + 87,000,000 + 6,000,000 + 500,000 + 40,000 + 3,000 + 200 + 10 + 1" },
+    { question: "How many different ways can you partition 100,000,000 into millions and thousands?", answer: "100,000,000 = 100 * 1,000,000 or 10,000 * 10,000 or 1,000 * 100,000 or 100,000 * 1,000 or 10,000,000 * 10 or 1,000,000 * 100 or 100,000,000 * 1" },
+    { question: "What is the value of the digit 6 in 678,901,234?", answer: "600,000,000" }
+  ],
+  [ // Stage 3, Level 3
+    { question: "If you have 876,543,210 items and you need to partition them into groups of 100,000,000, how many groups will you have and how many items will be left over?", answer: "8 groups, 76,543,210 items left over" },
+    { question: "How many different ways can you partition 1,000,000,000 into billions, millions, thousands, and ones?", answer: "1,000,000,000 = 1 * 1,000,000,000 or 1,000 * 1,000,000 or 1,000,000 * 1,000 or 1,000,000,000 * 1" },
+    { question: "What is the largest number you can form by partitioning 999,999,999 into non-standard forms?", answer: "999,999,999" },
+    { question: "If you start with 1,000,000,000 and keep subtracting 100,000,000 until you reach 0, how many steps will you take?", answer: "10" },
+    { question: "What is the value of the digit 5 in 5,432,109,876 when partitioned into billions, millions, thousands, and ones?", answer: "5,000,000,000" }
+  ]
+],
+4: [
+  [ // Stage 4, Level 1
+    { question: "Write 0.01 as a decimal", answer: "0.01" },
+    { question: "What is the place value of the digit 3 in 0.03?", answer: "hundredths" },
+    { question: "Express 1/1000 as a decimal", answer: "0.001" },
+    { question: "How many decimal places does 0.001 have?", answer: "3" },
+    { question: "Write the number 0.005 in words", answer: "five thousandths" }
+  ],
+  [ // Stage 4, Level 2
+    { question: "What is the value of the digit 7 in 0.007?", answer: "seven thousandths" },
+    { question: "Write 3/1000 as a decimal", answer: "0.003" },
+    { question: "How many thousandths are in 0.025?", answer: "25" },
+    { question: "What is the place value of the digit 2 in 0.123?", answer: "thousandths" },
+    { question: "Express 0.009 as a fraction", answer: "9/1000" }
+  ],
+  [ // Stage 4, Level 3
+    { question: "If you have 0.001 of a liter, how many milliliters is that?", answer: "1" },
+    { question: "Write the number that is 0.001 less than 0.005", answer: "0.004" },
+    { question: "How many different ways can you express 0.008 as a sum of thousandths?", answer: "0.008 = 8 * 0.001 or 4 * 0.002 or 2 * 0.004 or 1 * 0.008" },
+    { question: "If you start at 0.001 and keep adding 0.001 until you reach 0.010, how many steps will you take?", answer: "9" },
+    { question: "What is the smallest number greater than 0.007 that can be formed using the digits 0, 0, 7, 1?", answer: "0.0071" }
+  ]
+],
+5: [
+  [ // Stage 5, Level 1
+    { question: "Which is larger: -0.5 or 0.5?", answer: "0.5" },
+    { question: "Arrange these decimals in ascending order: 0.5, 0.3, 0.7", answer: "0.3, 0.5, 0.7" },
+    { question: "What is the value of the digit 4 in 0.456?", answer: "four tenths" },
+    { question: "Place 0.8 on a number line", answer: "0.8" },
+    { question: "Which is smaller: 0.01 or 0.1?", answer: "0.01" }
+  ],
+  [ // Stage 5, Level 2
+    { question: "Compare 0.123 and 0.124. Which is larger?", answer: "0.124" },
+    { question: "Arrange these decimals in descending order: 0.345, 0.346, 0.344", answer: "0.346, 0.345, 0.344" },
+    { question: "What is the value of the digit 6 in 0.346?", answer: "six thousandths" },
+    { question: "Place 0.125 on a number line", answer: "0.125" },
+    { question: "How many times larger is 0.3 than 0.03?", answer: "10" }
+  ],
+  [ // Stage 5, Level 3
+    { question: "If you have 0.123 of a liter and you add 0.001 more, what is the new total?", answer: "0.124" },
+    { question: "Write the number that is exactly halfway between 0.1 and 0.2", answer: "0.15" },
+    { question: "How many different ways can you represent the number 0.125 as a sum of tenths, hundredths, and thousandths?", answer: "0.125 = 1 * 0.1 + 2 * 0.01 + 5 * 0.001 or 1 * 0.1 + 1 * 0.02 + 5 * 0.001 or other combinations" },
+    { question: "If you start at 0.1 and keep adding 0.01 until you reach 0.2, how many steps will you take?", answer: "10" },
+    { question: "What is the smallest number greater than 0.123 that can be formed using the digits 1, 2, 3, 4?", answer: "0.1234" }
+  ]
+]
+    };
+
+    const XP_VALUES = { 1: 10, 2: 20, 3: 30, 4: 40, 5: 50 };
+    let currentStage = 1;
+    let currentLevel = 1;
+    let questionIndex = 0;
+    let correctAnswers = 0;
+    let consecutiveCorrect = 0;
+    let stageXP = [0, 0, 0, 0, 0];
+    let allAnswers = [];
+    let studentName = "";
+    let studentClass = "";
+
+    function startGame() {
+      studentName = document.getElementById("studentName").value;
+      studentClass = document.getElementById("studentClass").value;
+      if (!studentName.trim() || !studentClass.trim()) {
+        alert("Please enter your name and class!");
+        return;
+      }
+      document.getElementById("studentName").style.display = "none";
+      document.getElementById("studentClass").style.display = "none";
+      document.getElementById("game").style.display = "block";
+      loadQuestion();
+    }
+
+    function loadQuestion() {
+      document.getElementById("stageNumber").innerText = currentStage;
+      document.getElementById("levelNumber").innerText = currentLevel;
+      const questionSet = questions[currentStage][currentLevel - 1];
+      const question = questionSet[questionIndex];
+      document.getElementById("question").innerText = `Question ${questionIndex + 1}: ${question.question}`;
+      document.getElementById("answer").value = "";
+      document.getElementById("feedback").innerText = "";
+    }
+
+    function submitAnswer() {
+      const userAnswer = document.getElementById("answer").value.trim();
+      if (userAnswer === "") {
+        alert("Please enter a valid answer!");
+        return;
+      }
+      const questionSet = questions[currentStage][currentLevel - 1];
+      const correctAnswer = questionSet[questionIndex].answer;
+      const isCorrect = userAnswer === correctAnswer;
+
+      allAnswers.push({
+        Stage: currentStage,
+        Level: currentLevel,
+        Question: questionSet[questionIndex].question,
+        Answer: userAnswer,
+        Correct: isCorrect ? "Correct" : "Incorrect"
+      });
+
+      if (isCorrect) {
+        correctAnswers++;
+        consecutiveCorrect++;
+      } else {
+        consecutiveCorrect = 0;
+      }
+
+      // Move to the next level if the first two questions are correct
+      if (questionIndex < 2 && consecutiveCorrect === 2) {
+        stageXP[currentStage - 1] = Math.max(stageXP[currentStage - 1], XP_VALUES[currentLevel]);
+        if (currentLevel < 3) {
+          currentLevel++;
+          questionIndex = 0;
+          correctAnswers = 0;
+          consecutiveCorrect = 0;
+          loadQuestion();
+          return;
+        }
+      }
+
+      questionIndex++;
+
+      if (questionIndex === 5) {
+        handleLevelEnd();
+      } else {
+        loadQuestion();
+      }
+    }
+
+    function handleLevelEnd() {
+      if (correctAnswers >= 4) {
+        stageXP[currentStage - 1] = Math.max(stageXP[currentStage - 1], XP_VALUES[currentLevel]);
+        if (currentLevel === 3 && (correctAnswers === 4 || correctAnswers === 5)) {
+          stageXP[currentStage - 1] += 5;
+        }
+      }
+
+      if (correctAnswers >= 4 && currentLevel < 3) {
+        currentLevel++;
+        questionIndex = 0;
+        correctAnswers = 0;
+        consecutiveCorrect = 0;
+        loadQuestion();
+      } else {
+        handleStageEnd();
+      }
+    }
+
+    function handleStageEnd() {
+      alert(`Congratulations - You have achieved ${stageXP[currentStage - 1]} XP in Stage ${currentStage}.`);
+      if (currentStage < totalStages) {
+        currentStage++;
+        currentLevel = 1;
+        questionIndex = 0;
+        correctAnswers = 0;
+        consecutiveCorrect = 0;
+        loadQuestion();
+      } else {
+        endGame();
+      }
+    }
+
+    function endGame() {
+      document.getElementById("game").style.display = "none";
+      document.getElementById("endMessage").style.display = "block";
+      document.getElementById("finalName").innerText = studentName;
+      const totalXP = stageXP.reduce((a, b) => a + b, 0);
+      document.getElementById("finalXP").innerText = totalXP;
+    }
+
+    function generateExcel() {
+      const workbook = XLSX.utils.book_new();
+      const xpSheet = XLSX.utils.aoa_to_sheet([
+        ["Stage", "XP Earned"],
+        [1, stageXP[0]],
+        [2, stageXP[1]],
+        [3, stageXP[2]],
+        [4, stageXP[3]],
+        [5, stageXP[4]]
+      ]);
+      XLSX.utils.book_append_sheet(workbook, xpSheet, "XP Summary");
+
+      const questionData = allAnswers.map(a => [a.Stage, a.Level, a.Question, a.Answer, a.Correct]);
+      const questionSheet = XLSX.utils.aoa_to_sheet([
+        ["Stage", "Level", "Question", "Answer", "Correct/Incorrect"],
+        ...questionData
+      ]);
+      XLSX.utils.book_append_sheet(workbook, questionSheet, "Answers Summary");
+
+      XLSX.writeFile(workbook, `${studentName}_${studentClass}_MathGameResults.xlsx`);
+    }
+  </script>
+</body>
+</html>
